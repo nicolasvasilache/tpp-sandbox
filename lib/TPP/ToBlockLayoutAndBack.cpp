@@ -632,7 +632,9 @@ struct PropagateThroughElementWiseOp
     // associated to the operand check the equivalent dimension in the domain
     // and bind it with the tile size.
     DenseMap<int64_t, OpFoldResult> dimAndTileMapping;
-    for (OpOperand *operand : linalgOp.getInputAndOutputOperands()) {
+    auto operands = linalgOp.getInputOperands();
+    operands.append(linalgOp.getOutputOperands());
+    for (OpOperand *operand : operands) {
       linalgx::UnPackOp unpackOp =
           operand->get().getDefiningOp<linalgx::UnPackOp>();
       if (!unpackOp)
@@ -688,7 +690,7 @@ struct PropagateThroughElementWiseOp
     unsigned packedDims = dimAndTileMapping.size();
     SmallVector<AffineMap> newMaps;
     // get the new map for each operand.
-    for (OpOperand *operand : linalgOp.getInputAndOutputOperands()) {
+    for (OpOperand *operand : operands) {
       AffineMap mapOperand = linalgOp.getMatchingIndexingMap(operand);
       unsigned numSymbols = 0;
       unsigned numDims = linalgOp.getNumLoops() + packedDims;

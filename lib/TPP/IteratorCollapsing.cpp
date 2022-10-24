@@ -23,8 +23,9 @@ using namespace mlir;
 
 #define DEBUG_TYPE "iterator-collapsing"
 
-// TODO: Can we drop this pass: https://github.com/llvm/llvm-project/commit/83c65fbc2842909444bfe0a74ed083d164381078 ?
-// Most of these has been adapted by "DropUnitDims.cpp".
+// TODO: Can we drop this pass:
+// https://github.com/llvm/llvm-project/commit/83c65fbc2842909444bfe0a74ed083d164381078
+// ? Most of these has been adapted by "DropUnitDims.cpp".
 
 // Return true if the result at position 'pos' in 'map' is a constant 0. False
 // otherwise.
@@ -134,7 +135,8 @@ insertReshapes(RewriterBase &rewriter, linalg::GenericOp genericOp,
                ArrayRef<Type> newOperandTypes,
                ArrayRef<ArrayAttr> operandsReassociationMaps) {
   assert(newOperandTypes.size() == operandsReassociationMaps.size());
-  auto operands = genericOp.getInputAndOutputOperands();
+  auto operands = genericOp.getInputOperands();
+  operands.append(genericOp.getOutputOperands());
   assert(operands.size() == newOperandTypes.size());
 
   Location loc = genericOp.getLoc();
@@ -321,7 +323,9 @@ mlir::linalgx::collapseIterators(RewriterBase &rewriter,
 
   // Now compute the operand type and reassociations based on the new maps.
   unsigned currentMapIdx = 0;
-  for (OpOperand *opOperand : genericOp.getInputAndOutputOperands()) {
+  auto operands = genericOp.getInputOperands();
+  operands.append(genericOp.getOutputOperands());
+  for (OpOperand *opOperand : operands) {
     ArrayRef<int64_t> shape = genericOp.getShape(opOperand);
     SmallVector<int64_t> newShape;
     AffineMap currentMap = newIndexingMaps[currentMapIdx];
@@ -432,7 +436,7 @@ mlir::linalgx::collapseIterators(RewriterBase &rewriter,
     return failure();
 
   assert(reshapedOperands->size() ==
-         genericOp.getInputAndOutputOperands().size());
+         genericOp.getNumInputs() + genericOp.getNumOutputs());
 
   FailureOr<linalg::GenericOp> replacement = buildReplacement(
       rewriter, genericOp, *reshapedOperands, newInputOutputTypes,

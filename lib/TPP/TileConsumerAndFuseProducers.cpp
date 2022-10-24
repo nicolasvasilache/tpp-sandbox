@@ -147,9 +147,9 @@ struct FuseGenericOp : public OpRewritePattern<linalg::GenericOp> {
       return failure();
 
     // further restrict to single result operations.
-    linalg::OpOperandVector operands = isInplace(linalgOp)
-                                           ? linalgOp.getOutputOperands()
-                                           : linalgOp.getInputOperands();
+    OpOperandVector operands = isInplace(linalgOp)
+                                   ? linalgOp.getOutputOperands()
+                                   : linalgOp.getInputOperands();
     if (operands.size() != 1)
       return failure();
     linalg::LinalgOp producer =

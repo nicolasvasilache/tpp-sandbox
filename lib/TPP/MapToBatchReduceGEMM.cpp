@@ -63,7 +63,9 @@ static bool isOutputOperand(linalg::LinalgOp linalgOp, OpOperand *operand) {
 // [p3, p4] += [r1, p3, r2] * [r1, r2, p4].
 static LogicalResult checkAccessPatterns(linalg::LinalgOp linalgOp) {
   SmallVector<AffineMap> maps;
-  for (OpOperand *operand : linalgOp.getInputAndOutputOperands()) {
+  auto operands = linalgOp.getInputOperands();
+  operands.append(linalgOp.getOutputOperands());
+  for (OpOperand *operand : operands) {
     AffineMap map = linalgOp.getMatchingIndexingMap(operand);
     if (isInputOperand(linalgOp, operand)) {
       if (map.getNumResults() < 3)
@@ -114,9 +116,8 @@ static LogicalResult MapToBRGEMMOpPreconditions(linalg::LinalgOp linalgOp) {
 static FailureOr<SmallVector<Value>>
 getSlicedOperands(OpBuilder &builder, Location loc, ValueRange localIvs,
                   linalg::LinalgOp linalgOp, ValueRange valuesToUse) {
-  assert(linalgOp.getNumInputsAndOutputs() == 3 &&
-         "expect 3 input/output operands");
-  assert(linalgOp.getInputOperands().size() == 2 && "expect 2 input operands");
+  assert(linalgOp.getNumOutputs() == 1 && "expect 1 output operands");
+  assert(linalgOp.getNumInputs() == 2 && "expect 2 input operands");
 
   SmallVector<Value> slicedOperands;
   for (OpOperand *operand : linalgOp.getInputOperands()) {
@@ -156,7 +157,8 @@ mlir::linalgx::mapToBRGEMMOp(RewriterBase &rewriter,
                            ValueRange localIvs,
                            ValueRange operandValuesToUse) -> scf::ValueVector {
     assert(operandValuesToUse.size() ==
-               static_cast<size_t>(linalgOp.getNumInputsAndOutputs()) &&
+               static_cast<size_t>(linalgOp.getNumInputs() +
+                                   linalgOp.getNumOutputs()) &&
            "expect the number of operands and inputs and outputs to match");
     ivs.assign(localIvs.begin(), localIvs.end());
     FailureOr<SmallVector<Value>> maybeSlicedOperands =
